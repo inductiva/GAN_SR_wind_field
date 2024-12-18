@@ -195,6 +195,7 @@ def argv_to_cfg() -> Config:
 
 
 def safe_setup_env_and_cfg(cfg: Config) -> bool:
+    cfg.env.root_path = os.path.abspath(os.path.dirname(__file__))
     cfg.env.log_folder = cfg.env.root_path + cfg.env.log_subpath
     cfg.env.tensorboard_log_folder = cfg.env.root_path + cfg.env.tensorboard_subpath
     cfg.env.status_log_file = cfg.env.log_folder + "/" + cfg.name + ".log"
