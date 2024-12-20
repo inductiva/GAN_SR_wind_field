@@ -313,6 +313,7 @@ def prepare_data(cfg: Config):
         val_aug_flip=cfg.dataset_val.data_aug_flip,
         train_eval_test_ratio=cfg.training.train_eval_test_ratio,
         COARSENESS_FACTOR=cfg.scale,
+        isDownload=cfg.is_download
     )
 
 

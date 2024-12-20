@@ -509,6 +509,13 @@ def download_and_split(
             invalid_urls,
         )
 
+        #Extracting terrain info
+        if terrain== -1:
+            get_static_data()
+            with open(folder+"/static_terrain_x_y.pkl", "rb") as f:
+                data= slice_only_dim_dicts(*pickle.load(f), x_dict, y_dict)
+                terrain= data[0]
+
         z, u, v, w, pressure, invalid_download_files = extract_slice_and_filter_3D(
             data_code, start_date, end_date, transpose_indices
         )

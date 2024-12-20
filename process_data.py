@@ -513,18 +513,20 @@ def preprosess(
     train_aug_flip=False,
     val_aug_flip=False,
     for_plotting=False,
+    isDownload=False,
 ):
-    try:
-        with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
-            terrain, x, y = slice_only_dim_dicts(
-                *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
-            )
-    except:
-        get_static_data()
-        with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
-            terrain, x, y = slice_only_dim_dicts(
-                *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
-            )
+    if not isDownload:
+        try:
+            with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
+                terrain, x, y = slice_only_dim_dicts(
+                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
+                )
+        except:
+            get_static_data()
+            with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
+                terrain, x, y = slice_only_dim_dicts(
+                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
+                )
 
     (
         filenames,
@@ -544,6 +546,12 @@ def preprosess(
         terrain,
         train_eval_test_ratio=train_eval_test_ratio,
     )
+    
+    if isDownload:
+        with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
+                terrain, x, y = slice_only_dim_dicts(
+                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
+                )
 
     number_of_train_samples = int(len(filenames) * train_eval_test_ratio)
     number_of_test_samples = int(len(filenames) * (1 - train_eval_test_ratio) / 2)

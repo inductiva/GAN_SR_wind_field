@@ -10,12 +10,43 @@ The model and test results, are thoroughly described in the following master the
 This work is besed on Vesterkjær 2019's implementation of ESRGAN, https://github.com/eirikeve/esrdgan/tree/master. It is therefore subject to APACHE licence, described in the LICENSE.txt file
 
 
-Usage Instructions:
+## Running the code
+This code was developed using Python version 3.9. There will be dependency conflicts if other versions are used.
 
-    1- Clone the repo to local disk: $git clone https://github.com/inductiva/GAN_SR_wind_field.git
-    2- Change directory: $cd GAN_SR_wind_field
-    3- Create and activate virtual env (tested on python 3.9)
-    4- Install dependencies: $pip install -r requirements.txt
-    5- Modify config files (GAN_SR_wind_field/wind_field_GAN_3D_config_local.ini) to set target libraries
-    6- Once the dependencies are installed, the code can be run as follows
-        python run.py < --train | --test | --use > [ --cfg path/to/config.ini ] [ -h ]
+### Installing everything
+
+Clone the repository using:
+
+```bash
+git clone git@github.com:inductiva/GAN_SR_wind_field.git
+```
+Create a virtual environment to solve solve any clashes with the library versions used here and anything else that might be installed in your own system:
+
+```bash
+python3.9 -m venv .env
+source .env/bin/activate
+```
+After creating and activating the virtual environment install all the requirements of the project using:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Downloading the training data
+
+First modify the config files to specify the extend of the training data, by specifying the start and end date.  Other training parameters and hyper-parameters can also be edited here. 
+
+Once the configuration file is ready, download the raw data and then create training, validation and test datasets from HARMONIE-SIMRA data using the following command.
+
+```bash
+python run.py --download
+```
+### Train the model
+Start model training using the following comand
+
+```bash
+python run.py --train
+```
+The trained model can be now tested and used by using --test and --use flags.
+
+The z interpolation feature cannot be used as of now. It is being fixed.
