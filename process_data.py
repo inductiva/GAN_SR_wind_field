@@ -18,6 +18,8 @@ from download_data import (
     get_interpolated_z_data,
     get_static_data,
     filenames_from_start_and_end_dates,
+    download_all_files,
+    prepare_and_split,
 )
 from datetime import date
 import os
@@ -312,6 +314,98 @@ def calculate_gradient_of_wind_field(HR_data, x, y, Z):
         dim=1,
     )
 
+def prepare_data(
+    start_date: date,
+    end_date: date,
+    x_dict,
+    y_dict,
+    z_dict,
+    terrain,
+    folder: str = "./data/full_dataset_files/",
+    train_eval_test_ratio=0.8,
+):
+    filenames = filenames_from_start_and_end_dates(start_date, end_date)
+    Z_MIN, Z_MAX, UVW_MAX, P_MIN, P_MAX, Z_ABOVE_GROUND_MAX = 10000, 0, 0, 1000000, 0, 0
+
+    finished = False
+    start = -1
+    subfolder = slice_dict_folder_name(x_dict, y_dict, z_dict)
+
+    if not os.path.exists(folder + subfolder):
+        os.makedirs(folder + subfolder + "/max/")
+
+    invalid_samples = set()
+    while not finished:
+        for i in range(len(filenames)):
+            if filenames[i] not in invalid_samples:
+                try:
+                    with open(
+                        folder + subfolder + "max/max_" + filenames[i], "rb"
+                    ) as f:
+                        (
+                            z_min,
+                            z_max,
+                            z_above_ground_max,
+                            uvw_max,
+                            p_min,
+                            p_max,
+                        ) = pickle.load(f)
+                    if i < train_eval_test_ratio * len(filenames):
+                        Z_MIN = min(Z_MIN, z_min)
+                        Z_MAX = max(Z_MAX, z_max)
+                        UVW_MAX = max(UVW_MAX, uvw_max)
+                        P_MIN = min(P_MIN, p_min)
+                        P_MAX = max(P_MAX, p_max)
+                        Z_ABOVE_GROUND_MAX = max(Z_ABOVE_GROUND_MAX, z_above_ground_max)
+
+                    if start != -1:
+                        print(
+                            "Spliting and processing data, from ",
+                            filenames[start],
+                            " to ",
+                            filenames[i],
+                        )
+                        invalid_samples = invalid_samples.union(
+                            prepare_and_split(
+                                filenames[start:i],
+                                terrain,
+                                x_dict,
+                                y_dict,
+                                z_dict,
+                                folder=folder + subfolder,
+                            )
+                        )
+                        start = -1
+                except FileNotFoundError:
+                    if start == -1:
+                        start = i
+
+            if i == len(filenames) - 1:
+                if start != -1:
+                    print(
+                        "Spliting and processing data, from  ",
+                        filenames[start],
+                        " to ",
+                        filenames[i],
+                    )
+                    invalid_samples = invalid_samples.union(
+                        prepare_and_split(
+                            filenames[start:],
+                            terrain,
+                            x_dict,
+                            y_dict,
+                            z_dict,
+                            folder=folder + subfolder,
+                        )
+                    )
+                    start = -1
+                else:
+                    finished = True
+
+    filenames = [item for item in filenames if item not in invalid_samples]
+
+    print("Data processed successfully")
+    return filenames, subfolder, Z_MIN, Z_MAX, Z_ABOVE_GROUND_MAX, UVW_MAX, P_MIN, P_MAX
 
 def download_all_files_and_prepare(
     start_date: date,
@@ -515,6 +609,8 @@ def preprosess(
     for_plotting=False,
     isDownload=False,
 ):
+    #First check if --download flag is set, if True then download all files,
+    # else extract terrain data from downloaded data
     if not isDownload:
         try:
             with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
@@ -527,6 +623,13 @@ def preprosess(
                 terrain, x, y = slice_only_dim_dicts(
                     *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
                 )
+    else:
+        download_all_files(start_date, end_date,)
+        get_static_data()
+        with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
+            terrain, x, y = slice_only_dim_dicts(
+                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
+                )
 
     (
         filenames,
@@ -537,7 +640,7 @@ def preprosess(
         UVW_MAX,
         P_MIN,
         P_MAX,
-    ) = download_all_files_and_prepare(
+    ) = prepare_data(
         start_date,
         end_date,
         X_DICT,
@@ -546,13 +649,6 @@ def preprosess(
         terrain,
         train_eval_test_ratio=train_eval_test_ratio,
     )
-    
-    if isDownload:
-        with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
-                terrain, x, y = slice_only_dim_dicts(
-                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
-                )
-
     number_of_train_samples = int(len(filenames) * train_eval_test_ratio)
     number_of_test_samples = int(len(filenames) * (1 - train_eval_test_ratio) / 2)
 
