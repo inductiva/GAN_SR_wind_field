@@ -85,10 +85,7 @@ def download_Bessaker_data(start_date, end_date, destination_folder, invalid_url
                             )
                         else:
                             print("File not found")
-                            with open(
-                                "./data/downloaded_raw_bessaker_data/invalid_files.txt",
-                                "a",
-                            ) as f:
+                            with open(os.path.join(destination_folder,"invalid_files.txt"),"a",) as f:
                                 f.write(filename + "\n")
 
                     except TypeError as e:
@@ -140,17 +137,17 @@ def quick_append(var, key, nc_fid, transpose_indices=[0, 2, 3, 1]):
     )
 
 
-def get_static_data():
+def get_static_data(input_folder, output_folder):
     
     try:
-        files = os.listdir("./data/downloaded_raw_bessaker_data/")
+        files = os.listdir(input_folder)
         if not files:
             raise ValueError("Data not found")
         filename = files[0]
     except FileNotFoundError:
         print("Data not found")
 
-    nc_fid = Dataset("./data/downloaded_raw_bessaker_data/" + filename, mode="r")
+    nc_fid = Dataset(input_folder + filename, mode="r")
 
     x = 100000 * nc_fid["x"][:]
     y = 100000 * nc_fid["y"][:]
@@ -160,12 +157,12 @@ def get_static_data():
     terrain = np.ma.filled(terrain.astype(float), np.nan)
     terrain, x, y = slice_only_dim_dicts(terrain, x, y)
 
-    with open("./data/full_dataset_files/static_terrain_x_y.pkl", "wb") as f:
+    with open(os.path.join(output_folder,"static_terrain_x_y.pkl"), "wb") as f:
         pickle.dump([terrain, x, y], f)
 
 
 def extract_slice_and_filter_3D(
-    data_code, start_date, end_date, transpose_indices=[0, 2, 3, 1]
+    data_code, start_date, end_date, destination_folder, transpose_indices=[0, 2, 3, 1],
 ):
     delta = end_date - start_date
     sim_times = ["T00Z.nc", "T12Z.nc"]
@@ -175,7 +172,7 @@ def extract_slice_and_filter_3D(
         for sim_time in sim_times:
             temp = start_date + timedelta(days=i)
             filename = data_code + ((str(temp)).replace("-", ""))
-            filename = "./data/downloaded_raw_bessaker_data/" + filename + sim_time
+            filename = destination_folder + filename + sim_time
             try:
                 nc_fid = Dataset(filename, mode="r")
                 assert nc_fid["time"][:].shape[0] == 13
@@ -416,7 +413,7 @@ def split_into_separate_files(
     filenames,
     terrain,
     invalid_samples: set,
-    folder="./data/full_dataset_files/",
+    folder,
 ):
     z_above_ground = np.transpose(
         np.transpose(z, ([0, 3, 1, 2])) - terrain, ([0, 2, 3, 1])
@@ -490,11 +487,12 @@ def split_into_separate_files(
 def download_all_files(
         start_date,
         end_date,
+        destination_folder,
 ):
-    if os.path.exists("./data/downloaded_raw_bessaker_data/invalid_files.txt"):
+    if os.path.exists(os.path.join(destination_folder,"invalid_files.txt")):
         invalid_urls = set(
             line.strip()
-            for line in open("./data/downloaded_raw_bessaker_data/invalid_files.txt")
+            for line in open(os.path.join(destination_folder,"invalid_files.txt"))
         )
     else:
         invalid_urls = set()
@@ -508,7 +506,7 @@ def download_all_files(
         download_Bessaker_data(
             batch_start,
             batch_end,
-            "./data/downloaded_raw_bessaker_data/",
+            destination_folder,
             invalid_urls,
         )
 def prepare_and_split(
@@ -517,7 +515,8 @@ def prepare_and_split(
     x_dict,
     y_dict,
     z_dict,
-    folder="./data/full_dataset_files/",
+    destination_folder,
+    folder,
 ):  
     data_code = "simra_BESSAKER_"
     start_time = datetime.strptime(filenames[0][:-7], "%Y-%m-%d")
@@ -532,7 +531,7 @@ def prepare_and_split(
         end_date = (start_time + timedelta(days=end - 1)).date()
 
         z, u, v, w, pressure, invalid_download_files = extract_slice_and_filter_3D(
-            data_code, start_date, end_date, transpose_indices
+            data_code, start_date, end_date,destination_folder, transpose_indices,
         )
 
         for date, sim_time in invalid_download_files:

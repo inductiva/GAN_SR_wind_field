@@ -321,7 +321,8 @@ def prepare_data(
     y_dict,
     z_dict,
     terrain,
-    folder: str = "./data/full_dataset_files/",
+    folder,
+    destination_folder,
     train_eval_test_ratio=0.8,
 ):
     filenames = filenames_from_start_and_end_dates(start_date, end_date)
@@ -372,6 +373,7 @@ def prepare_data(
                                 x_dict,
                                 y_dict,
                                 z_dict,
+                                destination_folder,
                                 folder=folder + subfolder,
                             )
                         )
@@ -395,6 +397,7 @@ def prepare_data(
                             x_dict,
                             y_dict,
                             z_dict,
+                            destination_folder,
                             folder=folder + subfolder,
                         )
                     )
@@ -611,24 +614,18 @@ def preprosess(
 ):
     #First check if --download flag is set, if True then download all files,
     # else extract terrain data from downloaded data
-    if not isDownload:
-        try:
-            with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
-                terrain, x, y = slice_only_dim_dicts(
-                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
-                )
-        except:
-            get_static_data()
-            with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
-                terrain, x, y = slice_only_dim_dicts(
-                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
-                )
-    else:
-        download_all_files(start_date, end_date,)
-        get_static_data()
-        with open("./data/full_dataset_files/static_terrain_x_y.pkl", "rb") as f:
+    processed_data_folder="./data/full_dataset_files/"
+    destination_folder="./data/downloaded_raw_bessaker_data/"
+
+    if isDownload:
+        download_all_files(start_date, 
+                           end_date,
+                           destination_folder,)
+    if not os.path.exists(os.path.join(processed_data_folder,"static_terrain_x_y.pkl")):
+        get_static_data(destination_folder, processed_data_folder)
+    with open(os.path.join(processed_data_folder,"static_terrain_x_y.pkl"), "rb") as f:
             terrain, x, y = slice_only_dim_dicts(
-                    *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
+                *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
                 )
 
     (
@@ -647,6 +644,8 @@ def preprosess(
         Y_DICT,
         Z_DICT,
         terrain,
+        processed_data_folder,
+        destination_folder,
         train_eval_test_ratio=train_eval_test_ratio,
     )
     number_of_train_samples = int(len(filenames) * train_eval_test_ratio)
