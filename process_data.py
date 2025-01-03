@@ -12,7 +12,6 @@ import torch.nn.parallel
 import torch.utils.data
 import pickle
 from download_data import (
-    download_and_split,
     slice_only_dim_dicts,
     slice_dict_folder_name,
     get_interpolated_z_data,
@@ -322,7 +321,7 @@ def prepare_data(
     z_dict,
     terrain,
     folder,
-    destination_folder,
+    raw_data_folder,
     train_eval_test_ratio=0.8,
 ):
     filenames = filenames_from_start_and_end_dates(start_date, end_date)
@@ -331,9 +330,9 @@ def prepare_data(
     finished = False
     start = -1
     subfolder = slice_dict_folder_name(x_dict, y_dict, z_dict)
-
-    if not os.path.exists(folder + subfolder):
-        os.makedirs(folder + subfolder + "/max/")
+    subfolder_path = os.path.join(folder, subfolder)
+    if not os.path.exists(subfolder_path):
+        os.makedirs(subfolder_path + "/max/")
 
     invalid_samples = set()
     while not finished:
@@ -341,7 +340,7 @@ def prepare_data(
             if filenames[i] not in invalid_samples:
                 try:
                     with open(
-                        folder + subfolder + "max/max_" + filenames[i], "rb"
+                        subfolder_path + "max/max_" + filenames[i], "rb"
                     ) as f:
                         (
                             z_min,
@@ -373,8 +372,8 @@ def prepare_data(
                                 x_dict,
                                 y_dict,
                                 z_dict,
-                                destination_folder,
-                                folder=folder + subfolder,
+                                raw_data_folder,
+                                subfolder_path,
                             )
                         )
                         start = -1
@@ -397,8 +396,8 @@ def prepare_data(
                             x_dict,
                             y_dict,
                             z_dict,
-                            destination_folder,
-                            folder=folder + subfolder,
+                            raw_data_folder,
+                            subfolder_path,
                         )
                     )
                     start = -1
@@ -507,12 +506,11 @@ def preprosess(
     val_aug_flip=False,
     for_plotting=False,
     isDownload=False,
+    destination_folder="./data/downloaded_raw_bessaker_data/",
+    processed_data_folder="./data/full_dataset_files/",
 ):
     #First check if --download flag is set, if True then download all files,
     # else extract terrain data from downloaded data
-    processed_data_folder="./data/full_dataset_files/"
-    destination_folder="./data/downloaded_raw_bessaker_data/"
-
     if isDownload:
         download_all_files(start_date, 
                            end_date,

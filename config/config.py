@@ -72,6 +72,10 @@ class EnvConfig(IniConfig):
 
     def setEnvConfig(self, env_config):
         self.root_path = env_config.get("root_path")
+        self.data_path = env_config.get("data_path")
+        self.download_path = env_config.get("download_path")
+        self.processed_data_path = env_config.get("processed_data_path")
+        self.interpolated_z_data_path = env_config.get("interpolated_z_data_path")
         self.log_subpath = env_config.get("log_subpath")
         self.tensorboard_subpath = env_config.get("tensorboard_subpath")
         self.runs_subpath = env_config.get("runs_subpath")

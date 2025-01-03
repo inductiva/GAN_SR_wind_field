@@ -55,7 +55,7 @@ def download_Bessaker_data(start_date, end_date, destination_folder, invalid_url
             temp = start_date + timedelta(days=i)
             temp_date = datetime.strptime(str(temp), "%Y-%m-%d")
             filename = data_code + ((str(temp)).replace("-", "")) + sim_time
-            local_filename = destination_folder + filename
+            local_filename = destination_folder + "/" + filename
             if os.path.isfile(local_filename) == True:
                 counter = counter + 1
                 print("Number of files downloaded ", counter, "/", no_data_points)
@@ -138,7 +138,7 @@ def quick_append(var, key, nc_fid, transpose_indices=[0, 2, 3, 1]):
 
 
 def get_static_data(input_folder, output_folder):
-    
+
     try:
         files = os.listdir(input_folder)
         if not files:
@@ -147,7 +147,7 @@ def get_static_data(input_folder, output_folder):
     except FileNotFoundError:
         print("Data not found")
 
-    nc_fid = Dataset(input_folder + filename, mode="r")
+    nc_fid = Dataset(os.path.join(input_folder, filename), mode="r")
 
     x = 100000 * nc_fid["x"][:]
     y = 100000 * nc_fid["y"][:]
@@ -162,7 +162,7 @@ def get_static_data(input_folder, output_folder):
 
 
 def extract_slice_and_filter_3D(
-    data_code, start_date, end_date, destination_folder, transpose_indices=[0, 2, 3, 1],
+    data_code, start_date, end_date, raw_data_folder, transpose_indices=[0, 2, 3, 1],
 ):
     delta = end_date - start_date
     sim_times = ["T00Z.nc", "T12Z.nc"]
@@ -172,7 +172,7 @@ def extract_slice_and_filter_3D(
         for sim_time in sim_times:
             temp = start_date + timedelta(days=i)
             filename = data_code + ((str(temp)).replace("-", ""))
-            filename = destination_folder + filename + sim_time
+            filename = os.path.join(raw_data_folder, filename + sim_time)
             try:
                 nc_fid = Dataset(filename, mode="r")
                 assert nc_fid["time"][:].shape[0] == 13
@@ -421,7 +421,7 @@ def split_into_separate_files(
     index = 0
     for i in range(len(filenames)):
         if filenames[i] not in invalid_samples:
-            if os.path.isfile(folder + "max/max_" + filenames[i]):
+            if os.path.isfile(os.path.join(folder, "max", "max_" + filenames[i])):
                 continue
 
             if (
@@ -457,7 +457,7 @@ def split_into_separate_files(
                 invalid_samples.add(filenames[i])
                 continue
 
-            with open(folder + filenames[i], "wb") as f:
+            with open(os.path.join(folder, filenames[i]), "wb") as f:
                 pickle.dump(
                     [
                         z[index],
@@ -469,7 +469,7 @@ def split_into_separate_files(
                     ],
                     f,
                 )
-            with open(folder + "max/max_" + filenames[i], "wb") as f:
+            with open(os.path.join(folder, "max", "max_" + filenames[i]), "wb") as f:
                 pickle.dump(
                     [
                         np.min(z),
@@ -515,7 +515,7 @@ def prepare_and_split(
     x_dict,
     y_dict,
     z_dict,
-    destination_folder,
+    raw_data_folder,
     folder,
 ):  
     data_code = "simra_BESSAKER_"
@@ -531,7 +531,7 @@ def prepare_and_split(
         end_date = (start_time + timedelta(days=end - 1)).date()
 
         z, u, v, w, pressure, invalid_download_files = extract_slice_and_filter_3D(
-            data_code, start_date, end_date,destination_folder, transpose_indices,
+            data_code, start_date, end_date,raw_data_folder, transpose_indices,
         )
 
         for date, sim_time in invalid_download_files:

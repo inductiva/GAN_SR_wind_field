@@ -196,6 +196,9 @@ def argv_to_cfg() -> Config:
 
 def safe_setup_env_and_cfg(cfg: Config) -> bool:
     cfg.env.root_path = os.path.abspath(os.path.dirname(__file__))
+    cfg.env.download_folder = cfg.env.root_path + cfg.env.data_path + cfg.env.download_path
+    cfg.env.processed_data_folder = cfg.env.root_path + cfg.env.data_path + cfg.env.processed_data_path
+    cfg.env.interpolated_z_data_folder = cfg.env.root_path + cfg.env.data_path + cfg.env.interpolated_z_data_path
     cfg.env.log_folder = cfg.env.root_path + cfg.env.log_subpath
     cfg.env.tensorboard_log_folder = cfg.env.root_path + cfg.env.tensorboard_subpath
     cfg.env.status_log_file = cfg.env.log_folder + "/" + cfg.name + ".log"
@@ -210,9 +213,9 @@ def safe_setup_env_and_cfg(cfg: Config) -> bool:
     [
         makedirs(path)
         for path in [
-            "./data/downloaded_raw_bessaker_data",
-            "./data/full_dataset_files",
-            "./data/interpolated_z_data",
+            cfg.env.download_folder,
+            cfg.env.processed_data_folder,
+            cfg.env.interpolated_z_data_folder,
         ]
     ]
     makedirs(cfg.env.this_runs_folder + "/images")
@@ -313,7 +316,9 @@ def prepare_data(cfg: Config):
         val_aug_flip=cfg.dataset_val.data_aug_flip,
         train_eval_test_ratio=cfg.training.train_eval_test_ratio,
         COARSENESS_FACTOR=cfg.scale,
-        isDownload=cfg.is_download
+        isDownload=cfg.is_download,
+        destination_folder=cfg.env.download_folder,
+        processed_data_folder=cfg.env.processed_data_folder,
     )
 
 
