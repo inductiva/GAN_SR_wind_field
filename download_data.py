@@ -41,7 +41,7 @@ def filenames_from_start_and_end_dates(start_date: date, end_date: date):
     return names
 
 
-def download_Bessaker_data(start_date, end_date, destination_folder, invalid_urls):
+def download_Bessaker_data(start_date, end_date, destination_folder, invalid_urls,invalid_files_path):
     start_date = start_date
     end_date = end_date
     delta = end_date - start_date
@@ -55,7 +55,7 @@ def download_Bessaker_data(start_date, end_date, destination_folder, invalid_url
             temp = start_date + timedelta(days=i)
             temp_date = datetime.strptime(str(temp), "%Y-%m-%d")
             filename = data_code + ((str(temp)).replace("-", "")) + sim_time
-            local_filename = destination_folder + "/" + filename
+            local_filename = os.path.join(destination_folder, filename)
             if os.path.isfile(local_filename) == True:
                 counter = counter + 1
                 print("Number of files downloaded ", counter, "/", no_data_points)
@@ -85,7 +85,7 @@ def download_Bessaker_data(start_date, end_date, destination_folder, invalid_url
                             )
                         else:
                             print("File not found")
-                            with open(os.path.join(destination_folder,"invalid_files.txt"),"a",) as f:
+                            with open(invalid_files_path,"a",) as f:
                                 f.write(filename + "\n")
 
                     except TypeError as e:
@@ -137,7 +137,7 @@ def quick_append(var, key, nc_fid, transpose_indices=[0, 2, 3, 1]):
     )
 
 
-def get_static_data(input_folder, output_folder):
+def get_static_data(input_folder, terrain_data_path):
 
     try:
         files = os.listdir(input_folder)
@@ -157,7 +157,7 @@ def get_static_data(input_folder, output_folder):
     terrain = np.ma.filled(terrain.astype(float), np.nan)
     terrain, x, y = slice_only_dim_dicts(terrain, x, y)
 
-    with open(os.path.join(output_folder,"static_terrain_x_y.pkl"), "wb") as f:
+    with open(terrain_data_path, "wb") as f:
         pickle.dump([terrain, x, y], f)
 
 
@@ -489,10 +489,11 @@ def download_all_files(
         end_date,
         destination_folder,
 ):
-    if os.path.exists(os.path.join(destination_folder,"invalid_files.txt")):
+    invalid_files_path = os.path.join(destination_folder,"invalid_files.txt")
+    if os.path.exists(invalid_files_path):
         invalid_urls = set(
             line.strip()
-            for line in open(os.path.join(destination_folder,"invalid_files.txt"))
+            for line in open(invalid_files_path, "r")
         )
     else:
         invalid_urls = set()
@@ -508,6 +509,7 @@ def download_all_files(
             batch_end,
             destination_folder,
             invalid_urls,
+            invalid_files_path,
         )
 def prepare_and_split(
     filenames,

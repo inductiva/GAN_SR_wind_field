@@ -331,8 +331,9 @@ def prepare_data(
     start = -1
     subfolder = slice_dict_folder_name(x_dict, y_dict, z_dict)
     subfolder_path = os.path.join(folder, subfolder)
+    max_folder_path = os.path.join(subfolder_path, "max")
     if not os.path.exists(subfolder_path):
-        os.makedirs(subfolder_path + "/max/")
+        os.makedirs(max_folder_path)
 
     invalid_samples = set()
     while not finished:
@@ -340,7 +341,7 @@ def prepare_data(
             if filenames[i] not in invalid_samples:
                 try:
                     with open(
-                        subfolder_path + "max/max_" + filenames[i], "rb"
+                        os.path.join(max_folder_path, "max_" + filenames[i]), "rb"
                     ) as f:
                         (
                             z_min,
@@ -510,14 +511,15 @@ def preprosess(
     processed_data_folder="./data/full_dataset_files/",
 ):
     #First check if --download flag is set, if True then download all files,
-    # else extract terrain data from downloaded data
+    # then extract terrain data from downloaded data
     if isDownload:
         download_all_files(start_date, 
                            end_date,
                            destination_folder,)
-    if not os.path.exists(os.path.join(processed_data_folder,"static_terrain_x_y.pkl")):
-        get_static_data(destination_folder, processed_data_folder)
-    with open(os.path.join(processed_data_folder,"static_terrain_x_y.pkl"), "rb") as f:
+    terrain_data_path = os.path.join(processed_data_folder,"static_terrain_x_y.pkl")
+    if not os.path.exists(terrain_data_path):
+        get_static_data(destination_folder, terrain_data_path)
+    with open(terrain_data_path, "rb") as f:
             terrain, x, y = slice_only_dim_dicts(
                 *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
                 )
