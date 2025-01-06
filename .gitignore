@@ -11,3 +11,4 @@ GAN_models/OLD
 .DS_Store
 figures/
 test_output/
+.env/

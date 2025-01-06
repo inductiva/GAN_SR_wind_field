@@ -41,7 +41,7 @@ def filenames_from_start_and_end_dates(start_date: date, end_date: date):
     return names
 
 
-def download_Bessaker_data(start_date, end_date, destination_folder, invalid_urls):
+def download_Bessaker_data(start_date, end_date, destination_folder, invalid_urls,invalid_files_path):
     start_date = start_date
     end_date = end_date
     delta = end_date - start_date
@@ -55,7 +55,7 @@ def download_Bessaker_data(start_date, end_date, destination_folder, invalid_url
             temp = start_date + timedelta(days=i)
             temp_date = datetime.strptime(str(temp), "%Y-%m-%d")
             filename = data_code + ((str(temp)).replace("-", "")) + sim_time
-            local_filename = destination_folder + filename
+            local_filename = os.path.join(destination_folder, filename)
             if os.path.isfile(local_filename) == True:
                 counter = counter + 1
                 print("Number of files downloaded ", counter, "/", no_data_points)
@@ -85,10 +85,7 @@ def download_Bessaker_data(start_date, end_date, destination_folder, invalid_url
                             )
                         else:
                             print("File not found")
-                            with open(
-                                "./data/downloaded_raw_bessaker_data/invalid_files.txt",
-                                "a",
-                            ) as f:
+                            with open(invalid_files_path,"a",) as f:
                                 f.write(filename + "\n")
 
                     except TypeError as e:
@@ -140,10 +137,17 @@ def quick_append(var, key, nc_fid, transpose_indices=[0, 2, 3, 1]):
     )
 
 
-def get_static_data():
-    filename = os.listdir("./data/downloaded_raw_bessaker_data/")[0]
+def get_static_data(input_folder, terrain_data_path):
 
-    nc_fid = Dataset("./data/downloaded_raw_bessaker_data/" + filename, mode="r")
+    try:
+        files = os.listdir(input_folder)
+        if not files:
+            raise ValueError("Data not found")
+        filename = files[0]
+    except FileNotFoundError:
+        print("Data not found")
+
+    nc_fid = Dataset(os.path.join(input_folder, filename), mode="r")
 
     x = 100000 * nc_fid["x"][:]
     y = 100000 * nc_fid["y"][:]
@@ -153,12 +157,12 @@ def get_static_data():
     terrain = np.ma.filled(terrain.astype(float), np.nan)
     terrain, x, y = slice_only_dim_dicts(terrain, x, y)
 
-    with open("./data/full_dataset_files/static_terrain_x_y.pkl", "wb") as f:
+    with open(terrain_data_path, "wb") as f:
         pickle.dump([terrain, x, y], f)
 
 
 def extract_slice_and_filter_3D(
-    data_code, start_date, end_date, transpose_indices=[0, 2, 3, 1]
+    data_code, start_date, end_date, raw_data_folder, transpose_indices=[0, 2, 3, 1],
 ):
     delta = end_date - start_date
     sim_times = ["T00Z.nc", "T12Z.nc"]
@@ -168,7 +172,7 @@ def extract_slice_and_filter_3D(
         for sim_time in sim_times:
             temp = start_date + timedelta(days=i)
             filename = data_code + ((str(temp)).replace("-", ""))
-            filename = "./data/downloaded_raw_bessaker_data/" + filename + sim_time
+            filename = os.path.join(raw_data_folder, filename + sim_time)
             try:
                 nc_fid = Dataset(filename, mode="r")
                 assert nc_fid["time"][:].shape[0] == 13
@@ -409,7 +413,7 @@ def split_into_separate_files(
     filenames,
     terrain,
     invalid_samples: set,
-    folder="./data/full_dataset_files/",
+    folder,
 ):
     z_above_ground = np.transpose(
         np.transpose(z, ([0, 3, 1, 2])) - terrain, ([0, 2, 3, 1])
@@ -417,7 +421,7 @@ def split_into_separate_files(
     index = 0
     for i in range(len(filenames)):
         if filenames[i] not in invalid_samples:
-            if os.path.isfile(folder + "max/max_" + filenames[i]):
+            if os.path.isfile(os.path.join(folder, "max", "max_" + filenames[i])):
                 continue
 
             if (
@@ -453,7 +457,7 @@ def split_into_separate_files(
                 invalid_samples.add(filenames[i])
                 continue
 
-            with open(folder + filenames[i], "wb") as f:
+            with open(os.path.join(folder, filenames[i]), "wb") as f:
                 pickle.dump(
                     [
                         z[index],
@@ -465,7 +469,7 @@ def split_into_separate_files(
                     ],
                     f,
                 )
-            with open(folder + "max/max_" + filenames[i], "wb") as f:
+            with open(os.path.join(folder, "max", "max_" + filenames[i]), "wb") as f:
                 pickle.dump(
                     [
                         np.min(z),
@@ -480,16 +484,42 @@ def split_into_separate_files(
             index += 1
     return invalid_samples
 
+def download_all_files(
+        start_date,
+        end_date,
+        destination_folder,
+):
+    invalid_files_path = os.path.join(destination_folder,"invalid_files.txt")
+    if os.path.exists(invalid_files_path):
+        invalid_urls = set(
+            line.strip()
+            for line in open(invalid_files_path, "r")
+        )
+    else:
+        invalid_urls = set()
 
-def download_and_split(
+    days = (end_date - start_date).days + 1
+    for i in range(0, days, 5):
+        start = i
+        end = min(i + 5, days)
+        batch_start = (start_date + timedelta(days=start))
+        batch_end = (start_date + timedelta(days=end - 1))
+        download_Bessaker_data(
+            batch_start,
+            batch_end,
+            destination_folder,
+            invalid_urls,
+            invalid_files_path,
+        )
+def prepare_and_split(
     filenames,
     terrain,
     x_dict,
     y_dict,
     z_dict,
-    invalid_urls,
-    folder="./data/full_dataset_files/",
-):
+    raw_data_folder,
+    folder,
+):  
     data_code = "simra_BESSAKER_"
     start_time = datetime.strptime(filenames[0][:-7], "%Y-%m-%d")
     end_time = datetime.strptime(filenames[-1][:-7], "%Y-%m-%d")
@@ -502,15 +532,8 @@ def download_and_split(
         start_date = (start_time + timedelta(days=start)).date()
         end_date = (start_time + timedelta(days=end - 1)).date()
 
-        download_Bessaker_data(
-            start_date,
-            end_date,
-            "./data/downloaded_raw_bessaker_data/",
-            invalid_urls,
-        )
-
         z, u, v, w, pressure, invalid_download_files = extract_slice_and_filter_3D(
-            data_code, start_date, end_date, transpose_indices
+            data_code, start_date, end_date,raw_data_folder, transpose_indices,
         )
 
         for date, sim_time in invalid_download_files:
@@ -538,7 +561,6 @@ def download_and_split(
             )
 
     return invalid_samples
-
 
 def slice_dict_folder_name(x_dict, y_dict, z_dict):
     return (
