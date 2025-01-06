@@ -488,6 +488,8 @@ def reformat_to_torch(
 
 
 def preprosess(
+    destination_folder,
+    processed_data_folder,
     train_eval_test_ratio=0.8,
     X_DICT={"start": 0, "max": 128, "step": 1},
     Y_DICT={"start": 0, "max": 128, "step": 1},
@@ -507,8 +509,6 @@ def preprosess(
     val_aug_flip=False,
     for_plotting=False,
     isDownload=False,
-    destination_folder="./data/downloaded_raw_bessaker_data/",
-    processed_data_folder="./data/full_dataset_files/",
 ):
     #First check if --download flag is set, if True then download all files,
     # then extract terrain data from downloaded data

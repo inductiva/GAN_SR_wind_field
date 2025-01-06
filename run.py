@@ -301,6 +301,8 @@ def prepare_data(cfg: Config):
     end_date = date(cfg_gan.end_date[0], cfg_gan.end_date[1], cfg_gan.end_date[2])
 
     return preprosess(
+        destination_folder=cfg.env.download_folder,
+        processed_data_folder=cfg.env.processed_data_folder,
         Z_DICT=Z_DICT,
         start_date=start_date,
         end_date=end_date,
@@ -317,8 +319,6 @@ def prepare_data(cfg: Config):
         train_eval_test_ratio=cfg.training.train_eval_test_ratio,
         COARSENESS_FACTOR=cfg.scale,
         isDownload=cfg.is_download,
-        destination_folder=cfg.env.download_folder,
-        processed_data_folder=cfg.env.processed_data_folder,
     )
 
 
