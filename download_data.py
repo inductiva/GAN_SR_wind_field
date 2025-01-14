@@ -15,6 +15,7 @@ import netCDF4
 from netCDF4 import Dataset
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 
 def check(url):
@@ -175,7 +176,8 @@ def extract_slice_and_filter_3D(
             filename = os.path.join(raw_data_folder, filename + sim_time)
             try:
                 nc_fid = Dataset(filename, mode="r")
-                assert nc_fid["time"][:].shape[0] == 13
+                print("Time shape",nc_fid["time"][:].shape[0])
+                assert nc_fid["time"][:].shape[0] == 144
                 if index == 0:
                     # time = nc_fid["time"][:]
                     # latitude = nc_fid["longitude"][:]
@@ -520,7 +522,7 @@ def prepare_and_split(
     raw_data_folder,
     folder,
 ):  
-    data_code = "simra_BESSAKER_"
+    data_code = "ventos_PERDIGAO_"
     start_time = datetime.strptime(filenames[0][:-7], "%Y-%m-%d")
     end_time = datetime.strptime(filenames[-1][:-7], "%Y-%m-%d")
     days = (end_time - start_time).days + 1

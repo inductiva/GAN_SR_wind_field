@@ -20,6 +20,7 @@ from download_data import (
     download_all_files,
     prepare_and_split,
 )
+from dataReformat import perdigao_data_reformat
 from datetime import date
 import os
 
@@ -510,12 +511,20 @@ def preprosess(
     for_plotting=False,
     isDownload=False,
 ):
+    start_time = 18
+    """ perdigao_data_reformat(
+        start_date,
+        start_time,
+        end_date,
+        destination_folder,
+        source_folder="/home/ssudhakaran/sourav_files/0_Datasets/Perdigao",
+    ) """
     #First check if --download flag is set, if True then download all files,
     # then extract terrain data from downloaded data
-    if isDownload:
+    """ if isDownload:
         download_all_files(start_date, 
                            end_date,
-                           destination_folder,)
+                           destination_folder,) """
     terrain_data_path = os.path.join(processed_data_folder,"static_terrain_x_y.pkl")
     if not os.path.exists(terrain_data_path):
         get_static_data(destination_folder, terrain_data_path)
