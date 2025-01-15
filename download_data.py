@@ -514,6 +514,7 @@ def download_all_files(
             invalid_files_path,
         )
 def prepare_and_split(
+    data_code,
     filenames,
     terrain,
     x_dict,
@@ -522,7 +523,6 @@ def prepare_and_split(
     raw_data_folder,
     folder,
 ):  
-    data_code = "ventos_PERDIGAO_"
     start_time = datetime.strptime(filenames[0][:-7], "%Y-%m-%d")
     end_time = datetime.strptime(filenames[-1][:-7], "%Y-%m-%d")
     days = (end_time - start_time).days + 1

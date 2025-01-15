@@ -23,6 +23,7 @@ from download_data import (
 from dataReformat import perdigao_data_reformat
 from datetime import date
 import os
+import re
 
 
 class CustomizedDataset(torch.utils.data.Dataset):
@@ -315,6 +316,7 @@ def calculate_gradient_of_wind_field(HR_data, x, y, Z):
     )
 
 def prepare_data(
+    data_code,
     start_date: date,
     end_date: date,
     x_dict,
@@ -369,6 +371,7 @@ def prepare_data(
                         )
                         invalid_samples = invalid_samples.union(
                             prepare_and_split(
+                                data_code,
                                 filenames[start:i],
                                 terrain,
                                 x_dict,
@@ -393,6 +396,7 @@ def prepare_data(
                     )
                     invalid_samples = invalid_samples.union(
                         prepare_and_split(
+                            data_code,
                             filenames[start:],
                             terrain,
                             x_dict,
@@ -521,10 +525,10 @@ def preprosess(
     ) """
     #First check if --download flag is set, if True then download all files,
     # then extract terrain data from downloaded data
-    """ if isDownload:
+    if isDownload:
         download_all_files(start_date, 
                            end_date,
-                           destination_folder,) """
+                           destination_folder,)
     terrain_data_path = os.path.join(processed_data_folder,"static_terrain_x_y.pkl")
     if not os.path.exists(terrain_data_path):
         get_static_data(destination_folder, terrain_data_path)
@@ -532,6 +536,8 @@ def preprosess(
             terrain, x, y = slice_only_dim_dicts(
                 *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
                 )
+    
+    data_code = get_dataCode(destination_folder)
 
     (
         filenames,
@@ -543,6 +549,7 @@ def preprosess(
         P_MIN,
         P_MAX,
     ) = prepare_data(
+        data_code,
         start_date,
         end_date,
         X_DICT,
@@ -646,6 +653,26 @@ def preprosess(
         torch.from_numpy(y).float(),
     )
 
+def get_dataCode(input_folder):
+    prefix=None
+    try:
+        files = os.listdir(input_folder)
+        if not files:
+            raise ValueError("Data not found")
+        filename = files[0]
+    except FileNotFoundError:
+        print("Data not found")
+    # Extract the prefix (string till the date)
+    match = re.match(r"(.*_)\d{8}T\d{2}Z", filename)
+    if match:
+        prefix = match.group(1)  # Extract the matching part before the date
+        print(f"Prefix: {prefix}")
+    if prefix==None:
+        print("Check input files")
+        exit()
+    else:
+        return prefix 
+    
 
 if __name__ == "__main__":
     preprosess(include_above_ground_channel=True)
