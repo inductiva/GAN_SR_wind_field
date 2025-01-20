@@ -514,21 +514,31 @@ def preprosess(
     val_aug_flip=False,
     for_plotting=False,
     isDownload=False,
+    dataset= "bessaker",
+    data_source = None,
 ):
-    start_time = 18
-    """ perdigao_data_reformat(
-        start_date,
-        start_time,
-        end_date,
-        destination_folder,
-        source_folder="/home/ssudhakaran/sourav_files/0_Datasets/Perdigao",
-    ) """
+
     #First check if --download flag is set, if True then download all files,
     # then extract terrain data from downloaded data
     if isDownload:
-        download_all_files(start_date, 
-                           end_date,
-                           destination_folder,)
+        if dataset == "perdigao":
+            start_time = 0
+            end_time =0
+            perdigao_data_reformat(
+                start_date,
+                start_time,
+                end_date,
+                end_time,
+                destination_folder,
+                data_source,
+            )
+        elif dataset == "bessaker":
+            download_all_files(start_date,
+                               end_date,
+                               destination_folder,)
+        else:
+            print("Invalid dataset (select 'perdigao' or 'bessaker')")
+
     terrain_data_path = os.path.join(processed_data_folder,"static_terrain_x_y.pkl")
     if not os.path.exists(terrain_data_path):
         get_static_data(destination_folder, terrain_data_path)
@@ -536,7 +546,7 @@ def preprosess(
             terrain, x, y = slice_only_dim_dicts(
                 *pickle.load(f), x_dict=X_DICT, y_dict=Y_DICT
                 )
-    
+
     data_code = get_dataCode(destination_folder)
 
     (

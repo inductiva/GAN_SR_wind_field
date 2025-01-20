@@ -145,13 +145,16 @@ def get_static_data(input_folder, terrain_data_path):
         if not files:
             raise ValueError("Data not found")
         filename = files[0]
+        print("Static data derived from:", filename)
     except FileNotFoundError:
         print("Data not found")
 
     nc_fid = Dataset(os.path.join(input_folder, filename), mode="r")
 
-    x = 100000 * nc_fid["x"][:]
-    y = 100000 * nc_fid["y"][:]
+    #x = 100000 * nc_fid["x"][:]
+    #y = 100000 * nc_fid["y"][:]
+    x = 10 * nc_fid["x"][:]
+    y = 10 * nc_fid["y"][:]
     terrain = nc_fid["surface_altitude"][:]
     nc_fid.close()
 
@@ -528,9 +531,9 @@ def prepare_and_split(
     days = (end_time - start_time).days + 1
     transpose_indices = [0, 2, 3, 1]
     invalid_samples = set()
-    for i in range(0, days, 5):
+    for i in range(0, days, 1):
         start = i
-        end = min(i + 5, days)
+        end = min(i + 1, days)
         start_date = (start_time + timedelta(days=start)).date()
         end_date = (start_time + timedelta(days=end - 1)).date()
 
