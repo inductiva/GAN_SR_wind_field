@@ -316,6 +316,7 @@ def calculate_gradient_of_wind_field(HR_data, x, y, Z):
     )
 
 def prepare_data(
+    dataset,
     data_code,
     start_date: date,
     end_date: date,
@@ -371,6 +372,7 @@ def prepare_data(
                         )
                         invalid_samples = invalid_samples.union(
                             prepare_and_split(
+                                dataset,
                                 data_code,
                                 filenames[start:i],
                                 terrain,
@@ -396,6 +398,7 @@ def prepare_data(
                     )
                     invalid_samples = invalid_samples.union(
                         prepare_and_split(
+                            dataset,
                             data_code,
                             filenames[start:],
                             terrain,
@@ -559,6 +562,7 @@ def preprosess(
         P_MIN,
         P_MAX,
     ) = prepare_data(
+        dataset,
         data_code,
         start_date,
         end_date,

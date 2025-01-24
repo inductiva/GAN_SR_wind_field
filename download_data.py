@@ -166,8 +166,13 @@ def get_static_data(input_folder, terrain_data_path):
 
 
 def extract_slice_and_filter_3D(
-    data_code, start_date, end_date, raw_data_folder, transpose_indices=[0, 2, 3, 1],
+    dataset, data_code, start_date, end_date, raw_data_folder, transpose_indices=[0, 2, 3, 1],
 ):
+    if dataset == "Bessaker":
+        time_shape = 13
+    else:
+        time_shape = 144
+
     delta = end_date - start_date
     sim_times = ["T00Z.nc", "T12Z.nc"]
     index = 0
@@ -180,7 +185,7 @@ def extract_slice_and_filter_3D(
             try:
                 nc_fid = Dataset(filename, mode="r")
                 print("Time shape",nc_fid["time"][:].shape[0])
-                assert nc_fid["time"][:].shape[0] == 144
+                assert nc_fid["time"][:].shape[0] == time_shape
                 if index == 0:
                     # time = nc_fid["time"][:]
                     # latitude = nc_fid["longitude"][:]
@@ -517,6 +522,7 @@ def download_all_files(
             invalid_files_path,
         )
 def prepare_and_split(
+    dataset,
     data_code,
     filenames,
     terrain,
@@ -537,7 +543,7 @@ def prepare_and_split(
         start_date = (start_time + timedelta(days=start)).date()
         end_date = (start_time + timedelta(days=end - 1)).date()
 
-        z, u, v, w, pressure, invalid_download_files = extract_slice_and_filter_3D(
+        z, u, v, w, pressure, invalid_download_files = extract_slice_and_filter_3D(dataset,
             data_code, start_date, end_date,raw_data_folder, transpose_indices,
         )
 

@@ -71,7 +71,7 @@ def main():
             cfg.gan_config.end_date[2],
         )
         status_logger.info(
-            "run.py: starting download of all data for Bessaker Wind farm from "
+            f"run.py: starting download of all data for {cfg.env.dataset} Wind farm from "
             + str(start_date)
             + " to "
             + str(end_date)
