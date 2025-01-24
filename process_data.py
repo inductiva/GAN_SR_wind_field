@@ -525,16 +525,12 @@ def preprosess(
     # then extract terrain data from downloaded data
     if isDownload:
         if dataset == "perdigao":
-            start_time = 0
-            end_time =0
-            perdigao_data_reformat(
-                start_date,
-                start_time,
-                end_date,
-                end_time,
-                destination_folder,
-                data_source,
-            )
+            start_date, end_date= perdigao_data_reformat(
+                                                        start_date,
+                                                        end_date,
+                                                        destination_folder,
+                                                        data_source,
+                                                        )
         elif dataset == "bessaker":
             download_all_files(start_date,
                                end_date,

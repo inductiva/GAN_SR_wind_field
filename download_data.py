@@ -184,7 +184,6 @@ def extract_slice_and_filter_3D(
             filename = os.path.join(raw_data_folder, filename + sim_time)
             try:
                 nc_fid = Dataset(filename, mode="r")
-                print("Time shape",nc_fid["time"][:].shape[0])
                 assert nc_fid["time"][:].shape[0] == time_shape
                 if index == 0:
                     # time = nc_fid["time"][:]

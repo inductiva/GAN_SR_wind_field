@@ -5,16 +5,14 @@ import os
 import xarray as xr
 
 def perdigao_data_reformat(start_date,
-                           start_time,
                            end_date,
-                           end_time,
                            destination_folder,
                            source_folder
                            ):
     filename = "af_output.nc"
     filename = os.path.join(source_folder, filename)
-    start_date = datetime.combine(start_date, time(start_time))
-    end_date = datetime.combine(end_date, time(end_time))
+    start_date_time = datetime.combine(start_date, time(0))
+    end_date_time = datetime.combine(end_date+timedelta(days=1), time(0))
     spinUpTime = timedelta(hours=6)
     sampling_rate = 5*60 #5 minutes
     try:
@@ -28,45 +26,49 @@ def perdigao_data_reformat(start_date,
 
         # Parse the units string to extract the start date and time
         if "since" in time_units:
-            start_datetime_str = time_units.split("since")[1].strip()
-            data_start = datetime.strptime(start_datetime_str, "%Y-%m-%d %H:%M:%S")
+            start_date_timetime_str = time_units.split("since")[1].strip()
+            data_start = datetime.strptime(start_date_timetime_str, "%Y-%m-%d %H:%M:%S")
             available_data = timedelta(seconds=t[-1])
             available_data = data_start + available_data
-            print(f"    Data available from   :{data_start} to {available_data}")
+            print(f"    Data available from    :{data_start} to {available_data}")
         else:
             print("Start date/time not found in the data attributes")
 
-        print(f"    Requested data        :{start_date} to {end_date}")
-        print(f"    Spin up time          :{spinUpTime} hrs")
+        print(f"    Requested data         :{start_date_time} to {end_date_time}")
+        print(f"    Spin up time           :{spinUpTime} hrs")
 
         #Verifying of the entered dates are available
-        if available_data < end_date:
+        if available_data < end_date_time:
             print("    Data avialable only until ", available_data, ".. trimming datasetto available data")
-            end_date = available_data
+            end_date_time = available_data
+            end_date = end_date_time.date()
 
-        if start_date < data_start:
+        if start_date_time < data_start:
             print(f"    Data avialable only from {data_start} .. trimming dataset to available data")
+            start_date = data_start.date()
 
-        if (end_date - data_start)<spinUpTime:
+        if (end_date_time - data_start)<spinUpTime:
             print("Data available only for spin up time.. exiting")
             return
-        
+        #Available date range
+
+
         data_start = data_start + spinUpTime
-        run_time = (end_date - data_start).total_seconds()
+        run_time = (end_date_time - data_start).total_seconds()
         usable_data= timedelta(seconds=t[-1]) -spinUpTime
         spinUpTime_s = spinUpTime.total_seconds()
         print("    Post spin-up start date:", data_start)
-        print(f"    Usable data           :{usable_data} hrs")
-        print(f"    Data used             :{timedelta(seconds=run_time)} hrs")
+        print(f"    Usable data            :{usable_data} hrs")
+        print(f"    Data used              :{timedelta(seconds=run_time)} hrs")
         
         #Accounting for spin-up time based on the start date
-        if start_date>data_start:
-            start_offset= (start_date - data_start).total_seconds()
+        if start_date_time>data_start:
+            start_offset= (start_date_time - data_start).total_seconds()
             spinUp_indice=int((spinUpTime_s+start_offset)/sampling_rate)
         else:
             spinUp_indice = int(spinUpTime_s/sampling_rate)
-            start_date = data_start
-        last_indice = spinUp_indice + int(run_time/sampling_rate)
+            start_date_time = data_start
+        last_indice = spinUp_indice + int(run_time/sampling_rate) +1
 
         #Loading the data
         # Select the desired time range
@@ -108,12 +110,16 @@ def perdigao_data_reformat(start_date,
         data = data.swap_dims({'z': 'l'})
 
         #Split data for each day -2 files per day
-        split_and_save_data(data, destination_folder, start_date, end_date)
+        split_and_save_data(data, destination_folder, start_date_time, end_date_time)
         print("    Data split and saved successfully")
         
 
     except Exception as e:
         print("File not found or error:", e)
+
+    #returning the start and end dates based on data availability
+    start_date = start_date_time.date()
+    return start_date, end_date
     
 def create_netCDF(data, destination_folder, filename):
 
@@ -129,8 +135,7 @@ def create_netCDF(data, destination_folder, filename):
     data = data.assign(geopotential_height_ml=geopotential_height_ml)
     data = data.assign(surface_altitude=surface_altitude)
 
-    #Remove `h` from the dataset
-    data = data.drop_vars('h')
+    data = data.drop_vars('h') #Remove `h` from the dataset
     
     #Renaming variables
     data = data.rename({'u': 'x_wind_ml', 'v': 'y_wind_ml', 'w': 'upward_air_velocity_ml', 'p': 'air_pressure_ml'})
@@ -138,9 +143,9 @@ def create_netCDF(data, destination_folder, filename):
     # Adding attributes
     data.to_netcdf(filename)
 
-def split_and_save_data(data, destination_folder, start_date, end_date):
+def split_and_save_data(data, destination_folder, start_date_time, end_date_time):
     # Splitting the data into daily files
-    date = start_date
+    date = start_date_time
     start_indice, end_indice = 0,0
     t = data['time'].values
     initial_time = t[0]
@@ -154,47 +159,39 @@ def split_and_save_data(data, destination_folder, start_date, end_date):
     cache_time = timedelta(seconds=0)
 
     for i in range(len(t)):
-        loop_time = start_date + timedelta(seconds=t[i])-timedelta(seconds=initial_time)
+        loop_time = start_date_time + timedelta(seconds=t[i])-timedelta(seconds=initial_time)
         if cache_time >= max_cache_time:
             end_indice = i
-            date_str = date.strftime("%Y%m%d")
-            if loop_time.time()>= time(12,0):
-                suffix = "T00Z"
-            else:
-                suffix = "T12Z"
+            filename = generate_filename(loop_time, date)
+            if loop_time >= next_date:
                 date = next_date
                 next_date = date + timedelta(days=1)
                 next_date = next_date.replace(hour=0, minute=0, second=0)
-
-            filename = f"ventos_PERDIGAO_{date_str}{suffix}.nc"
-            if os.path.exists(os.path.join(destination_folder, filename)):
-                print(f"    File exists: {filename}")
-            else:
-                #Variables definition and call create function
-                data_slice = data.isel(time=slice(start_indice, end_indice))
-                create_netCDF(data_slice, destination_folder, filename)
-                print(f"    File created: {filename}")
+            
+            save_data(data, start_indice, end_indice, destination_folder, filename)
             start_indice = end_indice
             cache_time = timedelta(seconds=0)
-
-        if i == len(t)-1:
-            if loop_time.time()>= time(12,0):
-                suffix = "T12Z"
-            else:
-                suffix = "T00Z"
-            end_indice = i+1
-            date_str = date.strftime("%Y%m%d")
-            filename = f"ventos_PERDIGAO_{date_str}{suffix}.nc"
-            
-            if os.path.exists(os.path.join(destination_folder, filename)):
-                print(f"    File exists: {filename}")
-            else:
-                data_slice = data.isel(time=slice(start_indice, end_indice))
-                #Variables definition and call create function
-                create_netCDF(data_slice, destination_folder, filename)
-                print(f"    File created: {filename}")
-        else:
+        
+        if i+1<len(t):
             cache_time = cache_time + timedelta(seconds=t[i+1])- timedelta(seconds=t[i])
         
         start_indice = end_indice
         
+def generate_filename(loop_time, date):
+    date_str = date.strftime("%Y%m%d")
+    if loop_time.time()>= time(12,0):
+        suffix = "T00Z"
+    else:
+        suffix = "T12Z"
+    filename = f"ventos_PERDIGAO_{date_str}{suffix}.nc"
+    return filename
+
+def save_data(data, start_indice, end_indice, destination_folder, filename):
+    # Creating the new netCDF file
+    if os.path.exists(os.path.join(destination_folder, filename)):
+                print(f"    File exists            : {filename}")       
+    else:
+        data_slice = data.isel(time=slice(start_indice, end_indice))
+        #Variables definition and call create function
+        create_netCDF(data_slice, destination_folder, filename)
+        print(f"    File created           : {filename}")
