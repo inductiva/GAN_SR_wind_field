@@ -678,8 +678,7 @@ def get_dataCode(input_folder):
         prefix = match.group(1)  # Extract the matching part before the date
         print(f"Prefix: {prefix}")
     if prefix==None:
-        print("Check input files")
-        exit()
+        raise RuntimeError("Check input files. Stopping execution.")
     else:
         return prefix 
     

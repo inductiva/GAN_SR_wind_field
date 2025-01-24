@@ -536,9 +536,15 @@ def prepare_and_split(
     days = (end_time - start_time).days + 1
     transpose_indices = [0, 2, 3, 1]
     invalid_samples = set()
-    for i in range(0, days, 1):
+
+    if dataset == "Bessaker":
+        batch_size = 5
+    else:
+        batch_size = 1
+
+    for i in range(0, days, batch_size):
         start = i
-        end = min(i + 1, days)
+        end = min(i + batch_size, days)
         start_date = (start_time + timedelta(days=start)).date()
         end_date = (start_time + timedelta(days=end - 1)).date()
 

@@ -1,4 +1,3 @@
-from netCDF4 import Dataset
 from  datetime import datetime, timedelta, time
 import numpy as np
 import os
@@ -48,10 +47,7 @@ def perdigao_data_reformat(start_date,
             start_date = data_start.date()
 
         if (end_date_time - data_start)<spinUpTime:
-            print("Data available only for spin up time.. exiting")
-            return
-        #Available date range
-
+            raise RuntimeError("Data available only for spin up time. Stopping execution.")
 
         data_start = data_start + spinUpTime
         run_time = (end_date_time - data_start).total_seconds()
