@@ -523,20 +523,20 @@ def preprosess(
 
     #First check if --download flag is set, if True then download all files,
     # then extract terrain data from downloaded data
-    if isDownload:
-        if dataset == "perdigao":
-            start_date, end_date= perdigao_data_reformat(
-                                                        start_date,
-                                                        end_date,
-                                                        destination_folder,
-                                                        data_source,
-                                                        )
-        elif dataset == "bessaker":
-            download_all_files(start_date,
-                               end_date,
-                               destination_folder,)
-        else:
-            print("Invalid dataset (select 'perdigao' or 'bessaker')")
+    
+    if dataset == "perdigao":
+        start_date, end_date= perdigao_data_reformat(
+                                                    start_date,
+                                                    end_date,
+                                                    destination_folder,
+                                                    data_source,
+                                                    )
+    elif dataset == "bessaker":
+        download_all_files(start_date,
+                            end_date,
+                            destination_folder,)
+    else:
+        print("Invalid dataset (select 'perdigao' or 'bessaker')")
 
     terrain_data_path = os.path.join(processed_data_folder,"static_terrain_x_y.pkl")
     if not os.path.exists(terrain_data_path):
@@ -661,6 +661,8 @@ def preprosess(
         dataset_validation,
         torch.from_numpy(x).float(),
         torch.from_numpy(y).float(),
+        start_date,
+        end_date,
     )
 
 def get_dataCode(input_folder):
