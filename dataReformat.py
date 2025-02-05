@@ -66,9 +66,14 @@ def perdigao_data_reformat(start_date,
             start_date_time = data_start
         last_indice = spinUp_indice + int(run_time/sampling_rate) +1
 
+        #print(f"    Spin up indice          :{spinUp_indice}, {ds['time'][spinUp_indice].data}, last indice:{last_indice}, {ds['time'][last_indice].data}")
+        
         #Loading the data
         # Select the desired time range
         ds = ds.isel(time=slice(spinUp_indice, last_indice))
+
+        # Flip variables along the z-axis within the Dataset
+        ds = ds.isel(z=slice(None, None, -1))
 
         # Alter x and y dimensions for specific variables
         h = ds['z'][:,:,:].data
@@ -77,12 +82,15 @@ def perdigao_data_reformat(start_date,
         z = ds['z'][:, 0, 0].data
         t = ds['time'].data
 
-        # Flip variables along the z-axis within the Dataset
-        ds = ds.isel(z=slice(None, None, -1))
+        """ print(f"t:{ds['time'][0].data} to {ds['time'][-1].data}")
+        print(f"x:{ds['x'][0,0,0].data} to {ds['x'][0,0,-1].data}")
+        print(f"y:{ds['y'][0,0,0].data} to {ds['y'][0,-1,0].data}")
+        print(f"z:{ds['z'][0,0,0].data} to {ds['z'][-1,0,0].data}") """
 
         # Create a new coordinate 'l'
         z_len = len(z)
         l = xr.DataArray(np.linspace(1, z_len, z_len), dims='z')
+
 
         # Create a new dataset with the new coordinates
         data = xr.Dataset(
